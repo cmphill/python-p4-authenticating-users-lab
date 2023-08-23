@@ -18,6 +18,30 @@ db.init_app(app)
 
 api = Api(app)
 
+class Login(Resource):
+    def post(self):
+        user = User.query.filter(
+            User.username == request.get_json()['username']
+        ).first()
+        session['user_id'] = user.id
+
+        return user.to_dict(), 200
+    
+class Logout(Resource):
+    def delete(self):
+        session['user_id'] = None
+        return {'message': '204, no content'}, 204
+    
+class CheckSession(Resource):
+    def get(self):
+        user = User.query.filter(User.id == session.get('user_id')).first()
+        if user:
+            return user.to_dict()
+        else:
+            return {}, 401
+        
+
+    
 class ClearSession(Resource):
 
     def delete(self):
@@ -47,11 +71,12 @@ class ShowArticle(Resource):
             return make_response(article_json, 200)
 
         return {'message': 'Maximum pageview limit reached'}, 401
-
+api.add_resource(CheckSession, '/check_session')
 api.add_resource(ClearSession, '/clear')
 api.add_resource(IndexArticle, '/articles')
 api.add_resource(ShowArticle, '/articles/<int:id>')
-
+api.add_resource(Login, '/login')
+api.add_resource(Logout, '/logout')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
